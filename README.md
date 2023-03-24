@@ -82,9 +82,7 @@ RT-Thread online packages
 
 最新版本特性支持 RT-Thread 搭配 UART 外接蓝牙Controller卡片使用，参考以下文档：
 
-- [QEMU + 蓝牙Controller卡片使用 NimBLE](https://club.rt-thread.org/ask/article/47e1aad061e7a53c.html)
-- [如何在 ART-Pi 的 bsp 工程中使用 NimBLE 蓝牙协议栈](https://club.rt-thread.org/ask/article/2a90783d5ac51641.html)
-- [如何在 ART-Pi 的 Studio 工程中使用 NimBLE 蓝牙协议栈](https://club.rt-thread.org/ask/article/ed1e170fb2a30f0a.html)
+- [zephyr_polling rtthread移植平台说明_CoderBob的博客-CSDN博客](https://blog.csdn.net/wenbo13579/article/details/129755818)
 
 外部蓝牙 Controller 选择及固件可参考 [蓝牙控制器固件](https://github.com/RT-Thread-packages/nimble/tree/master/docs/firmwares)
 
