@@ -2910,6 +2910,11 @@ static void hci_send_cmd(void)
     struct net_buf *buf;
     int err;
 
+    if(bt_dev.ncmd_sem.count == 0)
+    {
+        return; // Send only one cmd at a time
+    }
+
     /* Get next command */
     BT_DBG("send_cmd, calling net_buf_get");
     buf = net_buf_get(&bt_dev.cmd_tx_queue, Z_FOREVER);
