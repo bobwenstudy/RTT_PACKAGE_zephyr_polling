@@ -106,25 +106,6 @@ void zephyr_polling_main(void* parameter)
     }
 }
 
-int zephyr_polling_init(void)
-{
-    static rt_thread_t tid = RT_NULL;
-
-    tid = rt_thread_create("zephyr_polling_main",
-                            zephyr_polling_main, RT_NULL,
-                            4096,
-                            5, 5);
-    if (tid != RT_NULL)
-    {
-        rt_thread_startup(tid);
-    }
-
-    return 0;
-}
-// INIT_APP_EXPORT(zephyr_polling_init);
-MSH_CMD_EXPORT(zephyr_polling_init, "zephyr_polling start");
-
-
 static int zephyr(void) {
 
     static rt_thread_t tid = RT_NULL;
@@ -142,5 +123,6 @@ static int zephyr(void) {
 
     return 0;
 }
-MSH_CMD_EXPORT(zephyr, "zephyr_polling_init sample");
+// INIT_APP_EXPORT(zephyr_polling_init);
+MSH_CMD_EXPORT(zephyr, "zephyr_polling start");
 

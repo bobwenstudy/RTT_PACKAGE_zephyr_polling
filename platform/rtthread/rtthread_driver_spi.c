@@ -165,7 +165,7 @@ int32_t HCI_TL_SPI_Send(uint8_t* buffer, uint16_t size)
     {
       if((rt_tick_get() - tickstart_data_available) > TIMEOUT_DURATION)
       {
-        printk("%d timeout\r\n", rt_tick_get() - tickstart_data_available);
+        printk("%d SPI timeout\r\n", rt_tick_get() - tickstart_data_available);
         result = -3;
         break;
       }
@@ -179,12 +179,6 @@ int32_t HCI_TL_SPI_Send(uint8_t* buffer, uint16_t size)
 
     /* Read header */
     rt_spi_transfer(ble_spi, &header_master, &header_slave, HEADER_SIZE);
-
-    printk("Send header size: %d buffer: %02x", HEADER_SIZE, header_slave[0]);
-    for (int i = 1; i < HEADER_SIZE; ++i) {
-        printk("%02x", header_slave[i]);
-    }
-    printk("\r\n");
 
     rx_bytes = (((uint16_t)header_slave[2])<<8) | ((uint16_t)header_slave[1]);
 
@@ -276,7 +270,7 @@ static int hci_driver_send(struct net_buf *buf)
     data[0] = switch_net_buf_type(type);
     memcpy(data + 1, buf->data, len); //data[0] is the type  copy to data[1]
 
-    printk("hci_driver_send, type: %d, len: %d, data: %02x:%02x:%02x:%02x:%02x:%02x\n", type, len, data[0], data[1], data[2], data[3], data[4], data[5]);
+//    printk("hci_driver_send, type: %d, len: %d, data: %02x:%02x:%02x:%02x:%02x:%02x\n", type, len, data[0], data[1], data[2], data[3], data[4], data[5]);
 
     if (HCI_TL_SPI_Send(data, len + 1) < 0) { // type +1
         return -1;
@@ -297,7 +291,9 @@ void hci_driver_init_loop(void)
     int ret = HCI_TL_SPI_Receive(data, len); //ret: bytes num Recv
     if(ret > 0 && (data[0] != 0)) // type cant be 0
     {
-        printk("hci_driver_init_loop, ret: %d, data: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n", ret, data[0], data[1], data[2], data[3], data[4], data[5],data[6],data[7]);
+//        printk("hci_driver_init_loop, ret: %d, data: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
+//                ret, data[0], data[1], data[2], data[3], data[4], data[5],data[6],data[7]);
+        rt_thread_delay(2); // comment out the debug print, a delay (at least 2 ticks) should be add
 
         struct net_buf *buf;
         switch(data[0])
