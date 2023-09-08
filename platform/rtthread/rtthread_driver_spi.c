@@ -87,8 +87,20 @@ int32_t HCI_TL_SPI_Receive(uint8_t* buffer, uint16_t size)
   uint8_t header_master[HEADER_SIZE] = {0x0b, 0x00, 0x00, 0x00, 0x00};
   uint8_t header_slave[HEADER_SIZE];
 
+  uint32_t tickstart_data_available = rt_tick_get();
+
   /* CS reset */
   rt_pin_write(HCI_TL_SPI_CS_PIN, PIN_LOW);
+
+  /*check transfer Available*/
+  while(!IsDataAvailable())
+  {
+      if((rt_tick_get() - tickstart_data_available) > TIMEOUT_DURATION)
+      {
+        printk(" SPI Recv timeout : %d\r\n", rt_tick_get() - tickstart_data_available);
+        return -3;
+      }
+  }
 
   /* Read the header */
   rt_spi_transfer(ble_spi, &header_master, &header_slave, HEADER_SIZE); //RTAPI
