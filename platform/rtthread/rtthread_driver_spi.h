@@ -7,6 +7,7 @@
 /* SPI Trans Defines -------------------------------------------------------------------*/
 #define HEADER_SIZE       5U
 #define MAX_BUFFER_SIZE   255U
+#define TIMEOUT_HIGH      2U
 #define TIMEOUT_DURATION  100U
 #define TIMEOUT_IRQ_HIGH  1000U
 

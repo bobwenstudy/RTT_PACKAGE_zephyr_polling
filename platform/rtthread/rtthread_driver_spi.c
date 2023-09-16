@@ -30,6 +30,7 @@ static struct hci_trans_spi_config hci_config;
 struct rt_spi_device *ble_spi = RT_NULL;
 
 int32_t IsDataAvailable(void);
+void hci_driver_init_loop(void);
 
 int32_t HCI_TL_SPI_Init(void* pConf)
 {
@@ -87,8 +88,20 @@ int32_t HCI_TL_SPI_Receive(uint8_t* buffer, uint16_t size)
   uint8_t header_master[HEADER_SIZE] = {0x0b, 0x00, 0x00, 0x00, 0x00};
   uint8_t header_slave[HEADER_SIZE];
 
+  uint32_t tickstart_data_available = rt_tick_get();
+
   /* CS reset */
   rt_pin_write(HCI_TL_SPI_CS_PIN, PIN_LOW);
+
+  /*check transfer Available*/
+  while(!IsDataAvailable())
+  {
+      if((rt_tick_get() - tickstart_data_available) > TIMEOUT_DURATION)
+      {
+        printk(" SPI Recv timeout : %d\r\n", rt_tick_get() - tickstart_data_available);
+        return -3;
+      }
+  }
 
   /* Read the header */
   rt_spi_transfer(ble_spi, &header_master, &header_slave, HEADER_SIZE); //RTAPI
@@ -118,13 +131,20 @@ int32_t HCI_TL_SPI_Receive(uint8_t* buffer, uint16_t size)
    */
   uint32_t tickstart = rt_tick_get();
   while ((rt_tick_get() - tickstart) < TIMEOUT_IRQ_HIGH) {
-    if (rt_pin_read(HCI_TL_SPI_IRQ_PIN) == PIN_LOW) {
-      break;
-    }
+      if (rt_pin_read(HCI_TL_SPI_IRQ_PIN) == PIN_LOW) {
+          break;
+      }
   }
 
   /* Release CS line */
   rt_pin_write(HCI_TL_SPI_CS_PIN, PIN_HIGH);
+
+  tickstart = rt_tick_get();
+  while ((rt_tick_get() - tickstart) < TIMEOUT_HIGH) {
+      if (rt_pin_read(HCI_TL_SPI_IRQ_PIN) == PIN_HIGH) {
+          break;
+      }
+  }
 
   return len;
 }
@@ -140,6 +160,9 @@ int32_t HCI_TL_SPI_Send(uint8_t* buffer, uint16_t size)
 {
   int32_t result;
   uint16_t rx_bytes;
+
+  uint8_t char_00 = 0x00;
+  volatile uint8_t read_char;
 
   uint8_t header_master[HEADER_SIZE] = {0x0a, 0x00, 0x00, 0x00, 0x00};
   uint8_t header_slave[HEADER_SIZE];
@@ -165,7 +188,7 @@ int32_t HCI_TL_SPI_Send(uint8_t* buffer, uint16_t size)
     {
       if((rt_tick_get() - tickstart_data_available) > TIMEOUT_DURATION)
       {
-        printk("%d timeout\r\n", rt_tick_get() - tickstart_data_available);
+        printk("SPI Send timeout %d\r\n", rt_tick_get() - tickstart_data_available);
         result = -3;
         break;
       }
@@ -180,33 +203,37 @@ int32_t HCI_TL_SPI_Send(uint8_t* buffer, uint16_t size)
     /* Read header */
     rt_spi_transfer(ble_spi, &header_master, &header_slave, HEADER_SIZE);
 
-    printk("Send header size: %d buffer: %02x", HEADER_SIZE, header_slave[0]);
-    for (int i = 1; i < HEADER_SIZE; ++i) {
-        printk("%02x", header_slave[i]);
-    }
-    printk("\r\n");
-
     rx_bytes = (((uint16_t)header_slave[2])<<8) | ((uint16_t)header_slave[1]);
+    uint16_t byte_count = (header_slave[4] << 8)| header_slave[3];
 
-    if(rx_bytes >= size)
+    if (byte_count > 0) 
     {
-      /* Buffer is big enough */
-      rt_spi_transfer(ble_spi, buffer, &read_char_buf, size);
+        /* Release CS line */
+        rt_pin_write(HCI_TL_SPI_CS_PIN, PIN_HIGH);
+        /* to end the send, we need a delay */
+        rt_thread_delay(1);
+
+        hci_driver_init_loop();
+
+        result = -2;
     }
     else
     {
-      /* Buffer is too small */
-      result = -2;
+      if(rx_bytes >= size)
+      {
+        /* Buffer is big enough */
+        rt_spi_transfer(ble_spi, buffer, &read_char_buf, size);
+      }
+      else
+      {
+        /* Buffer is too small */
+        result = -2;
+      }
+
+      /* Release CS line */
+      rt_pin_write(HCI_TL_SPI_CS_PIN, PIN_HIGH);
     }
 
-    /* Release CS line */
-    rt_pin_write(HCI_TL_SPI_CS_PIN, PIN_HIGH);
-
-    if((rt_tick_get() - tickstart) > TIMEOUT_DURATION)
-    {
-      result = -3;
-      break;
-    }
   } while(result < 0);
 
   /**
@@ -276,7 +303,7 @@ static int hci_driver_send(struct net_buf *buf)
     data[0] = switch_net_buf_type(type);
     memcpy(data + 1, buf->data, len); //data[0] is the type  copy to data[1]
 
-    printk("hci_driver_send, type: %d, len: %d, data: %02x:%02x:%02x:%02x:%02x:%02x\n", type, len, data[0], data[1], data[2], data[3], data[4], data[5]);
+//    printk("hci_driver_send, type: %d, len: %d, data: %02x:%02x:%02x:%02x:%02x:%02x\n", type, len, data[0], data[1], data[2], data[3], data[4], data[5]);
 
     if (HCI_TL_SPI_Send(data, len + 1) < 0) { // type +1
         return -1;
@@ -297,7 +324,8 @@ void hci_driver_init_loop(void)
     int ret = HCI_TL_SPI_Receive(data, len); //ret: bytes num Recv
     if(ret > 0 && (data[0] != 0)) // type cant be 0
     {
-        printk("hci_driver_init_loop, ret: %d, data: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n", ret, data[0], data[1], data[2], data[3], data[4], data[5],data[6],data[7]);
+//        printk("hci_driver_init_loop, ret: %d, data: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
+//                ret, data[0], data[1], data[2], data[3], data[4], data[5],data[6],data[7]);
 
         struct net_buf *buf;
         switch(data[0])
