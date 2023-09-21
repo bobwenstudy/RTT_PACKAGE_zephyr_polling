@@ -4,7 +4,6 @@
 
 #include <rtthread.h>
 #include <rtdevice.h>
-#include "drv_gpio.h"
 #include "rtthread_driver_spi.h"
 
 #include "drivers/hci_driver.h"
@@ -91,7 +90,7 @@ int32_t HCI_TL_SPI_Receive(uint8_t* buffer, uint16_t size)
   uint32_t tickstart_data_available = rt_tick_get();
 
   /* CS reset */
-  rt_pin_write(HCI_TL_SPI_CS_PIN, PIN_LOW);
+  rt_pin_write(hci_config.cs_pin_num, PIN_LOW);
 
   /*check transfer Available*/
   while(!IsDataAvailable())
@@ -131,17 +130,17 @@ int32_t HCI_TL_SPI_Receive(uint8_t* buffer, uint16_t size)
    */
   uint32_t tickstart = rt_tick_get();
   while ((rt_tick_get() - tickstart) < TIMEOUT_IRQ_HIGH) {
-      if (rt_pin_read(HCI_TL_SPI_IRQ_PIN) == PIN_LOW) {
+      if (rt_pin_read(hci_config.irq_pin_num) == PIN_LOW) {
           break;
       }
   }
 
   /* Release CS line */
-  rt_pin_write(HCI_TL_SPI_CS_PIN, PIN_HIGH);
+  rt_pin_write(hci_config.cs_pin_num, PIN_HIGH);
 
   tickstart = rt_tick_get();
   while ((rt_tick_get() - tickstart) < TIMEOUT_HIGH) {
-      if (rt_pin_read(HCI_TL_SPI_IRQ_PIN) == PIN_HIGH) {
+      if (rt_pin_read(hci_config.irq_pin_num) == PIN_HIGH) {
           break;
       }
   }
@@ -178,7 +177,7 @@ int32_t HCI_TL_SPI_Send(uint8_t* buffer, uint16_t size)
     result = 0;
 
     /* CS reset */
-    rt_pin_write(HCI_TL_SPI_CS_PIN, PIN_LOW);
+    rt_pin_write(hci_config.cs_pin_num, PIN_LOW);
 
     /*
      * Wait until BlueNRG-2 is ready.
@@ -196,7 +195,7 @@ int32_t HCI_TL_SPI_Send(uint8_t* buffer, uint16_t size)
     if(result == -3)
     {
       /* The break causes the exiting from the "while", so the CS line must be released */
-      rt_pin_write(HCI_TL_SPI_CS_PIN, PIN_HIGH);
+      rt_pin_write(hci_config.cs_pin_num, PIN_HIGH);
       break;
     }
 
@@ -209,7 +208,7 @@ int32_t HCI_TL_SPI_Send(uint8_t* buffer, uint16_t size)
     if (byte_count > 0) 
     {
         /* Release CS line */
-        rt_pin_write(HCI_TL_SPI_CS_PIN, PIN_HIGH);
+        rt_pin_write(hci_config.cs_pin_num, PIN_HIGH);
         /* to end the send, we need a delay */
         rt_thread_delay(1);
 
@@ -231,7 +230,7 @@ int32_t HCI_TL_SPI_Send(uint8_t* buffer, uint16_t size)
       }
 
       /* Release CS line */
-      rt_pin_write(HCI_TL_SPI_CS_PIN, PIN_HIGH);
+      rt_pin_write(hci_config.cs_pin_num, PIN_HIGH);
     }
 
   } while(result < 0);
@@ -243,7 +242,7 @@ int32_t HCI_TL_SPI_Send(uint8_t* buffer, uint16_t size)
    */
   tickstart = rt_tick_get();
   while ((rt_tick_get() - tickstart) < TIMEOUT_IRQ_HIGH) {
-    if (rt_pin_read(HCI_TL_SPI_IRQ_PIN) == PIN_LOW) {
+    if (rt_pin_read(hci_config.irq_pin_num) == PIN_LOW) {
       break;
     }
   }
@@ -260,7 +259,7 @@ int32_t HCI_TL_SPI_Send(uint8_t* buffer, uint16_t size)
  */
 int32_t IsDataAvailable(void)
 {
-  return (rt_pin_read(HCI_TL_SPI_IRQ_PIN) == PIN_HIGH);
+  return (rt_pin_read(hci_config.irq_pin_num) == PIN_HIGH);
 }
 
 static int hci_driver_open(void)

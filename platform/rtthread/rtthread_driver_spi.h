@@ -20,10 +20,6 @@
 #define HCI_ISO_PKT         0x05
 #define HCI_VENDOR_PKT      0xff
 
-/* GET PIN  -----------------------------------------------*/
-#define HCI_TL_SPI_IRQ_PIN      GET_PIN(A, 0)  /* IRQ PIN OF BLUENRG*/
-#define HCI_TL_SPI_CS_PIN       GET_PIN(A, 1)  /* SPI CS PIN */
-
 #define NAME_SIZE       10U
 
 /* Exported Functions --------------------------------------------------------*/
