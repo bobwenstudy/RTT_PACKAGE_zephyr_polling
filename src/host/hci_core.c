@@ -3605,6 +3605,11 @@ int bt_enable(bt_ready_cb_t cb)
     return bt_init();
 }
 
+void bt_reset_nsem(void)
+{
+    // k_sem_reset(&bt_dev.ncmd_sem);
+    k_sem_init(&bt_dev.ncmd_sem, 1, 1);
+}
 bool bt_is_ready(void)
 {
     return atomic_test_bit(bt_dev.flags, BT_DEV_READY);

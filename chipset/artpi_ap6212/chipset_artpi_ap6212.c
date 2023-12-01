@@ -74,6 +74,7 @@ void prepare_start(void)
 void brcm_reset_cmd_timeout(struct k_timer *timer)
 {
     printf("brcm_reset_cmd_timeout()\n");
+    bt_reset_nsem();
     brcm_send_reset_cmd();
 }
 
